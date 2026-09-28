@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Торговый ассистент</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 16px;
+            line-height: 1.6;
+        }
+        h1 {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #58a6ff;
+            text-align: center;
+        }
+        h2 {
+            font-size: 16px;
+            margin: 20px 0 10px;
+            color: #8b949e;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 6px;
+        }
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .field {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            color: #8b949e;
+            margin-bottom: 4px;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 15px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #238636;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        button:active {
+            background: #2ea043;
+        }
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #21262d;
+        }
+        .result-row:last-child {
+            border-bottom: none;
+        }
+        .result-label {
+            color: #8b949e;
+            font-size: 14px;
+        }
+        .result-value {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .green { color: #3fb950; }
+        .red { color: #f85149; }
+        .yellow { color: #d29922; }
+        .warning {
+            background: #3d1e1e;
+            border: 1px solid #f85149;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 12px;
+            color: #f85149;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📊 Торговый ассистент</h1>
+
+    <!-- КАЛЬКУЛЯТОР -->
+    <div class="card">
+        <h2>Калькулятор</h2>
+
+        <div class="field">
+            <label>Баланс ($)</label>
+            <input type="number" id="balance" value="1000" step="0.01">
+        </div>
+
+        <div class="field">
+            <label>Плечо (x)</label>
+            <input type="number" id="leverage" value="10" step="1">
+        </div>
+
+        <div class="field">
+            <label>Цена входа</label>
+            <input type="number" id="entry" value="2685.50" step="0.01">
+        </div>
+
+        <div class="field">
+            <label>Стоп-лосс (SL)</label>
+            <input type="number" id="sl" value="2650.00" step="0.01">
+        </div>
+
+        <div class="field">
+            <label>Тейк-профит (TP)</label>
+            <input type="number" id="tp" value="2750.00" step="0.01">
+        </div>
+
+        <div class="field">
+            <label>Цель ($)</label>
+            <input type="number" id="target" value="50" step="0.01">
+        </div>
+
+        <div class="field">
+            <label>Макс. риск (%)</label>
+            <input type="number" id="maxRisk" value="2" step="0.1">
+        </div>
+
+        <div class="field">
+            <label>Комиссия (%)</label>
+            <input type="number" id="commission" value="0.055" step="0.001">
+        </div>
+
+        <button onclick="calculate()">Рассчитать</button>
+
+        <div id="results" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        function calculate() {
+            const balance = parseFloat(document.getElementById('balance').value);
+            const leverage = parseFloat(document.getElementById('leverage').value);
+            const entry = parseFloat(document.getElementById('entry').value);
+            const sl = parseFloat(document.getElementById('sl').value);
+            const tp = parseFloat(document.getElementById('tp').value);
+            const target = parseFloat(document.getElementById('target').value);
+            const maxRiskPct = parseFloat(document.getElementById('maxRisk').value);
+            const commissionPct = parseFloat(document.getElementById('commission').value);
+
+            if (!balance || !leverage || !entry || !sl || !tp || !target || !maxRiskPct || !commissionPct) {
+                document.getElementById('results').innerHTML = '<div class="warning">Заполни все поля!</div>';
+                return;
+            }
+
+            const maxRiskUsd = balance * (maxRiskPct / 100);
+            const commissionRate = commissionPct / 100;
+
+            // Вариант А: для цели
+            const sizeA = target / (tp - entry);
+            const riskA = sizeA * (entry - sl);
+            const marginA = (sizeA * entry) / leverage;
+            const commissionA = sizeA * entry * commissionRate + sizeA * tp * commissionRate;
+            const profitA = sizeA * (tp - entry) - commissionA;
+
+            // Вариант Б: для риска
+            const sizeB = maxRiskUsd / (entry - sl);
+            const targetB = sizeB * (tp - entry);
+            const marginB = (sizeB * entry) / leverage;
+            const commissionB = sizeB * entry * commissionRate + sizeB * tp * commissionRate;
+            const profitB = sizeB * (tp - entry) - commissionB;
+
+            // R/R
+            const rr = (tp - entry) / (entry - sl);
+
+            let html = '';
+
+            html += '<h2>Вариант А (для цели $' + target + ')</h2>';
+            html += '<div class="result-row"><span class="result-label">Размер позиции</span><span class="result-value">' + sizeA.toFixed(4) + '</span></div>';
+            html += '<div class="result-row"><span class="result-label">Риск</span><span class="result-value ' + (riskA > maxRiskUsd ? 'red' : 'green') + '">$' + riskA.toFixed(2) + (riskA > maxRiskUsd ? ' ⚠️' : '') + '</span></div>';
+            html += '<div class="result-row"><span class="result-label">Маржа</span><span class="result-value">$' + marginA.toFixed(2) + '</span></div>';
+            html += '<div class="result-row"><span class="result-label">Комиссия</span><span class="result-value">$' + commissionA.toFixed(2) + '</span></div>';
+            html += '<div class="result-row"><span class="result-label">Прибыль (нетто)</span><span class="result-value green">$' + profitA.toFixed(2) + '</span></div>';
+
+            html += '<h2>Вариант Б (для риска $' + maxRiskUsd.toFixed(2) + ')</h2>';
+            html += '<div class="result-row"><span class="result-label">Размер позиции</span><span class="result-value">' + sizeB.toFixed(4) + '</span></div>';
+            html += '<div class="result-row"><span class="result-label">Макс. цель</span><span class="result-value">$' + targetB.toFixed(2) + '</span></div>';
+            html += '<div class="result-row"><span class="result-label">Маржа</span><span class="result-value">$' + marginB.toFixed(2) + '</span></div>';
+            html += '<div class="result-row"><span class="result-label">Комиссия</span><span class="result-value">$' + commissionB.toFixed(2) + '</span></div>';
+            html += '<div class="result-row"><span class="result-label">Прибыль (нетто)</span><span class="result-value green">$' + profitB.toFixed(2) + '</span></div>';
+
+            html += '<h2>Соотношение</h2>';
+            html += '<div class="result-row"><span class="result-label">R/R</span><span class="result-value ' + (rr >= 2 ? 'green' : rr >= 1.5 ? 'yellow' : 'red') + '">' + rr.toFixed(2) + '</span></div>';
+
+            if (riskA > maxRiskUsd) {
+                html += '<div class="warning">⚠️ Цель $' + target + ' недостижима при риске $' + maxRiskUsd.toFixed(2) + '. Увеличь риск или уменьши цель до $' + targetB.toFixed(2) + '.</div>';
+            }
+
+            document.getElementById('results').innerHTML = html;
+        }
+    </script>
+
+</body>
+</html>
